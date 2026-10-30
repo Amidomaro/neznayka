@@ -1,0 +1,1486 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Незнайка в Солнечном городе — интерактивный квест</title>
+<style>
+:root{
+  --sky:#bfe6ff;
+  --sky2:#e8f7ff;
+  --sun:#ffd23f;
+  --orange:#ff8c42;
+  --red:#e84545;
+  --blue:#3f7ede;
+  --deep:#2c5fb3;
+  --green:#6cbf4a;
+  --green-d:#3f8c2c;
+  --purple:#9b5de5;
+  --pink:#ff77a8;
+  --ink:#2b2a4a;
+  --paper:#fffdf5;
+  --line:#e2dcc8;
+  --shadow:0 10px 0 rgba(43,42,74,.12);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font-family:"Comic Sans MS","Trebuchet MS","Segoe UI",system-ui,sans-serif;
+  color:var(--ink);
+  background:
+    radial-gradient(circle at 82% 12%, #fff6c9 0 90px, transparent 91px),
+    radial-gradient(circle at 12% 88%, #d8f5c8 0 140px, transparent 141px),
+    linear-gradient(180deg,#bfe6ff 0%, #e8f7ff 45%, #fdf6e3 100%);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+body::before{
+  content:"";
+  position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,.85) 0 26px, transparent 27px),
+    radial-gradient(circle, rgba(255,255,255,.55) 0 18px, transparent 19px);
+  background-size:340px 200px, 260px 160px;
+  background-position:40px 40px, 180px 120px;
+  opacity:.7;
+}
+.app{position:relative;z-index:1;max-width:1060px;margin:0 auto;padding:12px 14px 60px}
+
+/* ---------- HUD ---------- */
+.hud{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  background:rgba(255,255,255,.82);
+  border:3px solid #fff;
+  box-shadow:0 8px 22px rgba(44,95,179,.15);
+  border-radius:22px;
+  padding:8px 14px;
+  margin-bottom:14px;
+  backdrop-filter:blur(4px);
+}
+.hud .logo{
+  font-weight:700;font-size:15px;line-height:1.1;
+  color:var(--deep);
+  display:flex;align-items:center;gap:8px;
+}
+.hud .logo span.sun{font-size:22px}
+.hud .stars{display:flex;gap:3px;margin-left:auto;flex-wrap:wrap}
+.hud .star{font-size:19px;filter:grayscale(1);opacity:.35;transition:.25s}
+.hud .star.on{filter:none;opacity:1;transform:scale(1.12)}
+.hud .mini{
+  border:none;background:#eef4ff;color:var(--deep);
+  font:inherit;font-size:13px;font-weight:700;
+  padding:8px 12px;border-radius:14px;cursor:pointer;
+}
+.hud .mini:hover{background:#dde9ff}
+
+/* ---------- generic ---------- */
+.card{
+  background:var(--paper);
+  border-radius:26px;
+  border:4px solid #fff;
+  box-shadow:0 12px 0 rgba(43,42,74,.10), 0 20px 40px rgba(44,95,179,.14);
+  padding:20px;
+}
+h1{font-size:clamp(22px,4vw,34px);margin:0 0 6px;color:var(--deep);line-height:1.1}
+h2{font-size:clamp(19px,3vw,25px);margin:0 0 10px;color:var(--deep)}
+p{line-height:1.5}
+.muted{color:#6d6a8c}
+.btn{
+  border:none;font:inherit;font-weight:700;cursor:pointer;
+  background:var(--orange);color:#fff;
+  padding:14px 26px;border-radius:18px;font-size:18px;
+  box-shadow:0 6px 0 #d96a20;
+  transition:transform .08s, box-shadow .08s, filter .2s;
+}
+.btn:hover{filter:brightness(1.05)}
+.btn:active{transform:translateY(4px);box-shadow:0 2px 0 #d96a20}
+.btn.blue{background:var(--blue);box-shadow:0 6px 0 var(--deep)}
+.btn.blue:active{box-shadow:0 2px 0 var(--deep)}
+.btn.green{background:var(--green);box-shadow:0 6px 0 var(--green-d)}
+.btn.green:active{box-shadow:0 2px 0 var(--green-d)}
+.btn.ghost{background:#fff;color:var(--deep);box-shadow:0 6px 0 #d5e2f6}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.center{justify-content:center}
+.spacer{flex:1}
+
+/* ---------- intro ---------- */
+.intro-grid{display:grid;grid-template-columns:1fr 240px;gap:18px;align-items:center}
+@media(max-width:720px){.intro-grid{grid-template-columns:1fr}}
+.intro-text{font-size:17px}
+.namebox{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.namebox input{
+  font:inherit;font-size:17px;padding:12px 16px;border-radius:16px;
+  border:3px solid #cfe0f5;background:#fff;min-width:200px;color:var(--ink);
+}
+.namebox input:focus{outline:none;border-color:var(--blue)}
+.bubble{
+  position:relative;background:#fff;border:3px solid #cfe0f5;border-radius:20px;
+  padding:14px 16px;font-size:16px;line-height:1.45;box-shadow:0 8px 0 rgba(44,95,179,.08);
+}
+.bubble::after{
+  content:"";position:absolute;left:34px;bottom:-14px;
+  border:10px solid transparent;border-top-color:#cfe0f5;
+}
+
+/* ---------- map ---------- */
+.map-wrap{position:relative;margin-top:6px}
+.route-grid{
+  display:grid;gap:14px;
+  grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+}
+.station-card{
+  position:relative;text-align:left;cursor:pointer;
+  background:#fff;border:3px solid #fff;border-radius:22px;
+  padding:14px 14px 14px 58px;
+  box-shadow:0 8px 0 rgba(43,42,74,.10);
+  transition:transform .12s, box-shadow .12s;
+  font:inherit;color:inherit;
+  min-height:92px;
+}
+.station-card:hover{transform:translateY(-3px);box-shadow:0 11px 0 rgba(43,42,74,.12)}
+.station-card .num{
+  position:absolute;left:12px;top:14px;
+  width:36px;height:36px;border-radius:50%;
+  display:grid;place-items:center;color:#fff;font-weight:700;font-size:17px;
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.15);
+}
+.station-card .nm{font-weight:700;font-size:16px;line-height:1.15;display:block}
+.station-card .sub{font-size:12.5px;color:#79769a;display:block;margin-top:4px}
+.station-card .mark{position:absolute;right:10px;top:10px;font-size:18px}
+.station-card.locked{opacity:.55;cursor:not-allowed;filter:saturate(.4)}
+.station-card.locked:hover{transform:none;box-shadow:0 8px 0 rgba(43,42,74,.10)}
+.station-card.done{background:#f2fbee;border-color:#d9f0cd}
+.station-card .icon-big{position:absolute;right:12px;bottom:6px;font-size:30px;opacity:.22}
+
+/* ---------- station shell ---------- */
+.st-top{display:grid;grid-template-columns:150px 1fr;gap:16px;align-items:start}
+@media(max-width:640px){
+  .st-top{grid-template-columns:86px 1fr;gap:10px}
+  .st-top .st-kicker{font-size:11px}
+  .soda-grid{max-width:330px}
+  .mitten-grid{gap:7px}
+  .tile{width:56px;height:56px;font-size:22px}
+  .opt{font-size:19px;padding:10px 14px;min-width:52px}
+  .card{padding:14px;border-radius:20px}
+  .hud{gap:8px;padding:8px 10px}
+  .hud .logo{font-size:13px}
+  .hud .star{font-size:15px}
+}
+@media(max-width:480px){
+  .st-top{grid-template-columns:1fr;justify-items:center;text-align:center}
+  .st-top>div:first-child{width:104px}
+  .st-top .task-head{text-align:left}
+  .zoo-grid{grid-template-columns:1fr 1fr}
+  .zoo-card{padding:8px}
+  .zoo-card .ex{font-size:18px}
+  .photo-opts{grid-template-columns:1fr}
+}
+.st-hero{width:100%;filter:drop-shadow(0 8px 8px rgba(43,42,74,.16))}
+.st-kicker{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8f8bb3}
+.task{
+  margin-top:16px;background:#fff;border:3px dashed #d8e3f3;border-radius:20px;padding:16px;
+}
+.task-head{display:flex;gap:10px;align-items:flex-start;margin-bottom:12px}
+.qmark{
+  flex:0 0 auto;width:34px;height:34px;border-radius:50%;background:var(--sun);
+  display:grid;place-items:center;font-weight:700;font-size:20px;color:#9a6b00;
+  box-shadow:0 3px 0 #e0b000;
+}
+.task-head .txt{font-size:16px;line-height:1.4;padding-top:4px}
+.progressline{height:12px;background:#e9eef8;border-radius:99px;overflow:hidden;margin:0 0 14px}
+.progressline > i{display:block;height:100%;width:0;background:linear-gradient(90deg,#6cbf4a,#ffd23f);border-radius:99px;transition:width .35s}
+.feedback{min-height:26px;font-weight:700;font-size:16px;margin-top:10px}
+.feedback.ok{color:var(--green-d)}
+.feedback.no{color:var(--red)}
+.st-footer{display:flex;gap:10px;align-items:center;margin-top:18px;flex-wrap:wrap}
+
+/* ---------- answers ---------- */
+.opts{display:flex;gap:10px;flex-wrap:wrap}
+.opt{
+  font:inherit;font-weight:700;font-size:22px;cursor:pointer;
+  min-width:64px;padding:12px 18px;border-radius:16px;
+  background:#fff;color:var(--deep);border:3px solid #cfe0f5;
+  box-shadow:0 5px 0 #dbe7f7;transition:.12s;
+}
+.opt:hover{border-color:var(--blue);transform:translateY(-2px)}
+.opt:active{transform:translateY(3px);box-shadow:0 1px 0 #dbe7f7}
+.opt.good{background:#e6f8dd;border-color:var(--green);color:var(--green-d);box-shadow:0 5px 0 #bfe3ab}
+.opt.bad{background:#ffe7e7;border-color:var(--red);color:var(--red);box-shadow:0 5px 0 #f3bcbc}
+.eq{font-size:clamp(24px,5vw,34px);font-weight:700;letter-spacing:.02em}
+
+/* train */
+.train-svg{width:100%;height:auto;display:block;margin:0 auto;max-width:640px}
+
+/* soda grid */
+.soda-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;
+  max-width:420px;margin:0 auto;
+  background:#eaf6e2;border:3px solid #cde8bd;border-radius:18px;padding:8px;
+}
+.soda-cell{
+  position:relative;aspect-ratio:1/1;border-radius:12px;background:#fff;
+  border:2px solid #d7e9cb;display:grid;place-items:center;cursor:pointer;
+  transition:.15s;overflow:hidden;
+}
+.soda-cell:hover{border-color:var(--green)}
+.soda-cell.fixed{background:#f4fbef;cursor:default}
+.soda-cell.fixed::after{content:"🔒";position:absolute;right:4px;top:2px;font-size:11px;opacity:.55}
+.soda-cell svg{width:74%;height:74%}
+.soda-cell.flash-bad{animation:shake .4s}
+.soda-grid.bad{animation:shake .4s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+/* zoo */
+.zoo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.zoo-card{
+  background:#fff;border:3px solid #ffe0b8;border-radius:18px;padding:12px;
+  display:flex;flex-direction:column;gap:10px;align-items:center;
+  transition:.2s;
+}
+.zoo-card.solved{border-color:var(--green);background:#f4fbef}
+.zoo-card .ex{font-size:24px;font-weight:700;color:var(--deep)}
+.zoo-card .small-opts{display:flex;gap:6px}
+.zoo-card .small-opts .opt{font-size:17px;min-width:46px;padding:8px 10px;border-width:2px;box-shadow:0 4px 0 #dbe7f7}
+
+/* chess numbers */
+.target-box{
+  width:110px;height:110px;border-radius:22px;background:linear-gradient(160deg,#ffe9a8,#ffd23f);
+  display:grid;place-items:center;font-size:46px;font-weight:700;color:#8a5a00;
+  margin:0 auto 6px;box-shadow:0 6px 0 #e0b000;border:4px solid #fff;
+}
+.tiles{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:14px 0}
+.tile{
+  width:66px;height:66px;border-radius:18px;background:#fff;border:3px solid #d3c4f5;
+  color:#5b3fa6;font-weight:700;font-size:26px;display:grid;place-items:center;cursor:pointer;
+  box-shadow:0 5px 0 #e2d8fb;transition:.12s;
+}
+.tile:hover{transform:translateY(-3px)}
+.tile.sel{background:#efe6ff;border-color:var(--purple);transform:translateY(-3px) scale(1.04)}
+.tile.ok{background:#e6f8dd;border-color:var(--green);color:var(--green-d);box-shadow:0 5px 0 #bfe3ab}
+.chess-fig{font-size:26px;line-height:1}
+
+/* mittens */
+.mitten-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:520px;margin:0 auto}
+@media(max-width:520px){.mitten-grid{grid-template-columns:repeat(3,1fr)}}
+.mitten{
+  background:#fff;border:3px solid #e6e1f2;border-radius:18px;padding:6px;
+  cursor:pointer;transition:.15s;position:relative;aspect-ratio:1/1;display:grid;place-items:center;
+}
+.mitten svg{width:100%;height:100%}
+.mitten:hover{transform:translateY(-3px);border-color:var(--pink)}
+.mitten.sel{border-color:var(--purple);background:#f7f0ff;transform:translateY(-3px)}
+.mitten.matched{opacity:.45;border-color:var(--green);background:#f3fbef;cursor:default;transform:none}
+.mitten.matched::after{content:"✓";position:absolute;right:6px;top:2px;color:var(--green-d);font-weight:700;font-size:20px}
+
+/* spot the difference */
+.diff-wrap{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:700px){.diff-wrap{grid-template-columns:1fr}}
+.diff-panel{background:#fff;border:3px solid #ffd9e6;border-radius:18px;padding:6px;position:relative}
+.diff-panel svg{width:100%;height:auto;display:block;border-radius:12px}
+.diff-panel .lbl{position:absolute;top:8px;left:10px;font-size:12px;font-weight:700;color:#b0567d;background:#fff;padding:2px 8px;border-radius:99px;border:2px solid #ffd9e6}
+.hotspot{cursor:pointer;fill:rgba(255,255,255,0.001)}
+.found-ring{fill:none;stroke:#e84545;stroke-width:3;stroke-dasharray:7 5}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* shelf */
+.shelf-opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.shelf{
+  background:#fff;border:3px solid #e3ddcb;border-radius:16px;padding:8px;cursor:pointer;
+  transition:.15s;
+}
+.shelf:hover{transform:translateY(-3px);border-color:var(--blue)}
+.shelf.pick{border-color:var(--green);background:#f4fbef}
+.shelf.bad{border-color:var(--red);background:#fff1f1;animation:shake .4s}
+.shelf .cap{font-size:12px;font-weight:700;color:#8f8bb3;text-align:center;margin-top:4px}
+
+/* photo */
+.photo-scene{
+  background:#fff;border:6px solid #fff;border-radius:18px;overflow:hidden;
+  box-shadow:0 10px 0 rgba(43,42,74,.10);max-width:720px;margin:0 auto;
+}
+.photo-scene svg{display:block;width:100%;height:auto}
+.timer{
+  position:relative;height:14px;border-radius:99px;background:#eee;overflow:hidden;max-width:720px;margin:12px auto 0;
+}
+.timer > i{display:block;height:100%;background:var(--orange);width:100%}
+.photo-opts{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;max-width:720px;margin:0 auto}
+@media(max-width:560px){.photo-opts{grid-template-columns:1fr}}
+.photo-opt{background:#fff;border:4px solid #fff;border-radius:16px;padding:4px;cursor:pointer;box-shadow:0 8px 0 rgba(43,42,74,.10);transition:.15s}
+.photo-opt svg{display:block;width:100%;height:auto;border-radius:10px}
+.photo-opt:hover{transform:translateY(-3px)}
+.photo-opt.pick{outline:5px solid var(--green)}
+.photo-opt.bad{outline:5px solid var(--red)}
+
+/* quiz */
+.quiz-q{font-size:19px;font-weight:700;margin:6px 0 12px;color:var(--deep)}
+.quiz-opts{display:flex;flex-direction:column;gap:10px;max-width:620px}
+.quiz-opt{
+  text-align:left;font:inherit;font-size:17px;font-weight:700;cursor:pointer;
+  background:#fff;border:3px solid #cfe0f5;border-radius:16px;padding:13px 16px;
+  color:var(--ink);box-shadow:0 5px 0 #dbe7f7;transition:.12s;
+}
+.quiz-opt:hover{border-color:var(--blue);transform:translateY(-2px)}
+.quiz-opt.good{background:#e6f8dd;border-color:var(--green);box-shadow:0 5px 0 #bfe3ab}
+.quiz-opt.bad{background:#ffe7e7;border-color:var(--red);border-color:var(--red);box-shadow:0 5px 0 #f3bcbc}
+
+/* final */
+.cert{
+  background:linear-gradient(180deg,#fffdf3,#fff8dc);
+  border:6px double var(--orange);border-radius:24px;padding:26px;text-align:center;
+  max-width:760px;margin:14px auto;
+}
+.cert h2{font-size:clamp(20px,4vw,30px);margin-top:4px}
+.cert .name{font-size:clamp(22px,4.5vw,34px);color:var(--orange);font-weight:700;border-bottom:3px dashed #f3d59a;display:inline-block;padding:0 12px 4px;margin:8px 0}
+.cert .stars-big{font-size:26px;letter-spacing:4px;margin:10px 0}
+.confetti{position:fixed;top:-20px;width:12px;height:18px;border-radius:3px;z-index:0;pointer-events:none;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:.9}}
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(30px);
+  background:var(--ink);color:#fff;padding:12px 22px;border-radius:16px;font-weight:700;
+  opacity:0;transition:.3s;pointer-events:none;z-index:100;font-size:15px;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.small{font-size:13px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:#fff;border:2px solid #e2dcc8;border-radius:99px;padding:5px 12px;font-size:13px;font-weight:700;color:#6d6a8c}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="hud" id="hud"></header>
+  <main id="view"></main>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+/* =========================================================
+   НЕЗНАЙКА В СОЛНЕЧНОМ ГОРОДЕ — интерактивный квест
+   Часть 1: утилиты и рисованные персонажи
+   ========================================================= */
+
+/* ---------- утилиты ---------- */
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+
+let ACTX = null;
+function ac() {
+  if (!ACTX) { try { ACTX = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ACTX = null; } }
+  return ACTX;
+}
+function beep(freq, dur, type, vol) {
+  const ctx = ac(); if (!ctx) return;
+  try {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type || 'sine'; o.frequency.value = freq;
+    g.gain.value = vol || 0.06;
+    o.connect(g); g.connect(ctx.destination);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+    o.stop(ctx.currentTime + dur + 0.02);
+  } catch (e) {}
+}
+const sndOk = () => { beep(660, .1); setTimeout(() => beep(990, .14), 90); };
+const sndErr = () => { beep(200, .2, 'square', .04); };
+const sndWin = () => { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => beep(f, .16), i * 110)); };
+const sndPop = () => beep(440, .07, 'triangle', .05);
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+/* =========================================================
+   ПЕРСОНАЖИ
+   ========================================================= */
+function person(o) {
+  o = Object.assign({
+    hat: 'floppy', hatColor: '#3f7ede', hatDark: '#2c5fb3',
+    hair: '#f0872e', skin: '#ffd9b3',
+    shirt: '#ff8c42', tie: '#6cbf4a', pants: '#f5c542', shoes: '#2f4f9e',
+    dress: null, glasses: false, ponytail: false, bow: '#e84545',
+    hairShort: false
+  }, o || {});
+
+  const hairBack = o.hairShort
+    ? `<path d="M50 54 q0 -34 30 -34 q30 0 30 34 q0 6 -4 8 q-26 -12 -52 0 q-4 -2 -4 -8 z" fill="${o.hair}"/>`
+    : `<path d="M48 56 q-4 -40 32 -40 q36 0 32 40 q-2 16 -8 18 q2 -22 -24 -22 q-26 0 -24 22 q-6 -2 -8 -18 z" fill="${o.hair}"/>`;
+
+  const tufts = o.hairShort ? '' : `
+    <path d="M49 50 q-17 7 -19 27 q14 6 21 -7 z" fill="${o.hair}"/>
+    <path d="M111 50 q17 7 19 27 q-14 6 -21 -7 z" fill="${o.hair}"/>`;
+
+  const ponytail = o.ponytail ? `
+    <circle cx="114" cy="42" r="13" fill="${o.hair}"/>
+    <path d="M118 30 q12 6 10 20 q-8 4 -14 -4 z" fill="${o.hair}"/>
+    <path d="M104 32 l14 -8 l2 14 z" fill="${o.bow}"/>
+    <circle cx="111" cy="31" r="5" fill="${o.bow}"/>` : '';
+
+  let hat = '';
+  if (o.hat === 'floppy') {
+    hat = `
+      <path d="M33 42 C35 4 58 -8 80 -8 C102 -8 125 4 127 42 Z" fill="${o.hatColor}"/>
+      <path d="M60 -2 C68 12 92 12 100 -2 C94 -6 86 -8 80 -8 C74 -8 66 -6 60 -2 Z" fill="${o.hatDark}" opacity=".35"/>
+      <ellipse cx="80" cy="42" rx="53" ry="13" fill="${o.hatColor}"/>
+      <ellipse cx="80" cy="40" rx="53" ry="12" fill="none" stroke="${o.hatDark}" stroke-width="2" opacity=".55"/>
+      <path d="M40 30 q10 -24 34 -30 q-22 12 -26 32 z" fill="#ffffff" opacity=".25"/>`;
+  } else if (o.hat === 'cap') {
+    hat = `
+      <path d="M50 40 q4 -32 30 -32 q26 0 30 32 z" fill="${o.hatColor}"/>
+      <ellipse cx="100" cy="40" rx="26" ry="7" fill="${o.hatDark}"/>`;
+  }
+
+  const body = o.dress
+    ? `<path d="M62 92 q18 -8 36 0 l14 44 q-32 12 -64 0 z" fill="${o.dress}"/>
+       <path d="M62 92 q18 -8 36 0 l3 10 q-21 6 -42 0 z" fill="#ffffff" opacity=".35"/>`
+    : `<path d="M52 92 q28 -11 56 0 l5 58 q-33 12 -66 0 z" fill="${o.shirt}"/>`;
+
+  const legs = o.dress
+    ? `<rect x="64" y="136" width="13" height="52" rx="6.5" fill="${o.skin}"/>
+       <rect x="84" y="136" width="13" height="52" rx="6.5" fill="${o.skin}"/>`
+    : `<rect x="62" y="144" width="18" height="46" rx="9" fill="${o.pants}"/>
+       <rect x="82" y="144" width="18" height="46" rx="9" fill="${o.pants}"/>`;
+
+  const arms = `<rect x="34" y="100" width="15" height="42" rx="7.5" fill="${o.dress || o.shirt}" transform="rotate(9 41 121)"/>
+    <rect x="111" y="100" width="15" height="42" rx="7.5" fill="${o.dress || o.shirt}" transform="rotate(-9 118 121)"/>
+    <circle cx="37" cy="146" r="8" fill="${o.skin}"/>
+    <circle cx="123" cy="146" r="8" fill="${o.skin}"/>`;
+
+  return `<svg viewBox="0 0 160 210" xmlns="http://www.w3.org/2000/svg" role="img">
+    <ellipse cx="80" cy="200" rx="44" ry="8" fill="#2b2a4a" opacity=".12"/>
+    ${legs}
+    <ellipse cx="70" cy="192" rx="17" ry="9" fill="${o.shoes}"/>
+    <ellipse cx="94" cy="192" rx="17" ry="9" fill="${o.shoes}"/>
+    ${body}
+    ${o.dress ? '' : `<path d="M72 92 l8 11 8 -11" fill="#fff"/><path d="M80 101 l7 8 -7 21 -7 -21 z" fill="${o.tie}"/>`}
+    ${arms}
+    ${hairBack}
+    <circle cx="49" cy="61" r="7" fill="${o.skin}"/><circle cx="111" cy="61" r="7" fill="${o.skin}"/>
+    <circle cx="80" cy="58" r="31" fill="${o.skin}"/>
+    ${tufts}${ponytail}
+    <circle cx="69" cy="57" r="7.5" fill="#fff"/><circle cx="92" cy="57" r="7.5" fill="#fff"/>
+    <circle cx="70" cy="58" r="3.8" fill="#2b2a4a"/><circle cx="93" cy="58" r="3.8" fill="#2b2a4a"/>
+    <circle cx="71.4" cy="56.4" r="1.3" fill="#fff"/><circle cx="94.4" cy="56.4" r="1.3" fill="#fff"/>
+    <path d="M62 46 q7 -5 14 -1" stroke="${o.hair}" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M85 45 q7 -4 14 1" stroke="${o.hair}" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <ellipse cx="59" cy="68" rx="7" ry="4.5" fill="#ff9aa2" opacity=".55"/>
+    <ellipse cx="101" cy="68" rx="7" ry="4.5" fill="#ff9aa2" opacity=".55"/>
+    <circle cx="80" cy="66" r="3" fill="#e8a87c"/>
+    <path d="M70 73 q10 9 20 0" stroke="#b8484a" stroke-width="3" fill="none" stroke-linecap="round"/>
+    ${o.glasses ? `<circle cx="69" cy="57" r="12" fill="none" stroke="#2b2a4a" stroke-width="2.5"/><circle cx="92" cy="57" r="12" fill="none" stroke="#2b2a4a" stroke-width="2.5"/><path d="M81 57 h0" stroke="#2b2a4a" stroke-width="2.5"/>` : ''}
+    ${hat}
+  </svg>`;
+}
+
+const CHARS = {
+  neznaika: () => person({ hat: 'floppy', hatColor: '#3f7ede', hatDark: '#2c5fb3' }),
+  knopochka: () => person({
+    dress: '#ff77a8', skin: '#ffdcbb', hair: '#e8763a', ponytail: true, bow: '#e84545',
+    shoes: '#e84545', hat: 'none', tie: '#fff'
+  }),
+  znayka: () => person({
+    hat: 'none', hairShort: true, hair: '#8a5a2b', shirt: '#3f7ede', pants: '#2c3e6b',
+    shoes: '#2b2a4a', tie: '#e84545', glasses: true
+  }),
+  pachkulya: () => person({
+    hat: 'cap', hatColor: '#6cbf4a', hatDark: '#3f8c2c', hair: '#c98a3c', hairShort: true,
+    shirt: '#ffd23f', pants: '#9b5de5', shoes: '#2f4f9e', tie: '#e84545'
+  }),
+  kubik: () => person({
+    hat: 'cap', hatColor: '#ff8c42', hatDark: '#d96a20', hair: '#5d4037', hairShort: true,
+    shirt: '#f7f3e8', pants: '#3f7ede', shoes: '#2b2a4a', tie: '#9b5de5'
+  }),
+  malysh: () => person({
+    hat: 'floppy', hatColor: '#9b5de5', hatDark: '#6f36b8', hair: '#2b2a4a', hairShort: true,
+    shirt: '#6cbf4a', pants: '#3f7ede'
+  })
+};
+const charSVG = t => (CHARS[t] || CHARS.neznaika)();
+
+/* =========================================================
+   МЕЛКИЕ ПРЕДМЕТЫ
+   ========================================================= */
+function drinkSVG(kind) {
+  const cfg = {
+    A: { liq: '#ff5d6c', top: 'strawberry' },
+    B: { liq: '#c2185b', top: 'cherry' },
+    C: { liq: '#ffa726', top: 'orange' }
+  }[kind] || { liq: '#ff5d6c', top: 'strawberry' };
+
+  let top = '';
+  if (cfg.top === 'strawberry') {
+    top = `<path d="M30 4 q10 10 0 20 q-10 -10 0 -20 z" fill="#e84545"/>
+           <path d="M30 2 l-7 4 l7 -1 l7 1 z" fill="#6cbf4a"/>
+           <g fill="#fff" opacity=".7"><circle cx="28" cy="10" r="1"/><circle cx="32" cy="14" r="1"/><circle cx="30" cy="18" r="1"/></g>
+           <rect x="29" y="22" width="2" height="22" fill="#c9e6a5"/>`;
+  } else if (cfg.top === 'cherry') {
+    top = `<circle cx="22" cy="20" r="8" fill="#b3123c"/><circle cx="20" cy="18" r="2" fill="#ff7d9c"/>
+           <circle cx="36" cy="14" r="7" fill="#c2185b"/>
+           <path d="M22 12 q6 -12 14 -12" stroke="#6cbf4a" stroke-width="2" fill="none"/>
+           <path d="M36 7 q2 -6 8 -7" stroke="#6cbf4a" stroke-width="2" fill="none"/>`;
+  } else {
+    top = `<circle cx="36" cy="16" r="14" fill="#ffa726" stroke="#f57c00" stroke-width="2"/>
+           <circle cx="36" cy="16" r="9" fill="#ffcc80"/>
+           <g stroke="#f57c00" stroke-width="1.5">
+             <path d="M36 7 v18"/><path d="M27 16 h18"/><path d="M30 9 l12 14"/><path d="M42 9 l-12 14"/>
+           </g>`;
+  }
+
+  return `<svg viewBox="0 0 62 92" xmlns="http://www.w3.org/2000/svg">
+    ${top}
+    <path d="M14 30 h34 l-4 52 q-13 6 -26 0 z" fill="#e9f6ff" stroke="#a9d5ee" stroke-width="2"/>
+    <path d="M16 38 h30 l-3 42 q-12 5 -24 0 z" fill="${cfg.liq}"/>
+    <ellipse cx="31" cy="31" rx="17" ry="4" fill="#cfeaf9" stroke="#a9d5ee" stroke-width="2"/>
+    <path d="M22 42 q-2 20 0 34" stroke="#fff" stroke-width="3" opacity=".45" fill="none"/>
+    <g fill="#fff" opacity=".55"><circle cx="34" cy="52" r="2"/><circle cx="38" cy="62" r="1.5"/><circle cx="28" cy="70" r="1.8"/></g>
+  </svg>`;
+}
+
+function mittenSVG(kind) {
+  const cfg = {
+    snow: { base: '#e84545', cuff: '#ffffff', pat: '#ffffff' },
+    dots: { base: '#3f7ede', cuff: '#cfe0ff', pat: '#ffffff' },
+    zig: { base: '#9b5de5', cuff: '#eadcff', pat: '#ffd23f' },
+    stripe: { base: '#6cbf4a', cuff: '#ffffff', pat: '#ffffff' }
+  }[kind];
+  let pat = '';
+  if (kind === 'snow') {
+    pat = `<g stroke="${cfg.pat}" stroke-width="2.4" stroke-linecap="round" fill="none">
+      <path d="M34 22 v26 M26 28 l16 14 M42 28 l-16 14"/>
+      <path d="M30 24 l4 -3 l4 3" />
+    </g>`;
+  } else if (kind === 'dots') {
+    pat = `<g fill="${cfg.pat}"><circle cx="30" cy="22" r="3"/><circle cx="40" cy="32" r="3"/><circle cx="30" cy="42" r="3"/><circle cx="40" cy="50" r="2.4"/></g>`;
+  } else if (kind === 'zig') {
+    pat = `<path d="M22 30 l6 -6 l6 6 l6 -6 l6 6 l4 -4" stroke="${cfg.pat}" stroke-width="3.4" fill="none" stroke-linejoin="round"/>
+           <path d="M22 46 l6 -6 l6 6 l6 -6 l6 6 l4 -4" stroke="${cfg.pat}" stroke-width="3.4" fill="none" stroke-linejoin="round"/>`;
+  } else {
+    pat = `<g stroke="${cfg.pat}" stroke-width="3.4"><path d="M23 24 h22"/><path d="M22 36 h24"/><path d="M24 48 h20"/></g>`;
+  }
+  return `<svg viewBox="0 0 62 80" xmlns="http://www.w3.org/2000/svg">
+    <defs><clipPath id="body-${kind}">
+      <rect x="21" y="6" width="28" height="52" rx="13"/>
+    </clipPath></defs>
+    <!-- большой палец -->
+    <rect x="6" y="28" width="18" height="26" rx="9" fill="${cfg.base}" transform="rotate(-14 15 41)"/>
+    <!-- ладонь -->
+    <rect x="21" y="6" width="28" height="52" rx="13" fill="${cfg.base}"/>
+    <g clip-path="url(#body-${kind})">${pat}</g>
+    <!-- манжета -->
+    <rect x="17" y="54" width="36" height="19" rx="7" fill="${cfg.cuff}" stroke="${cfg.base}" stroke-width="2.5"/>
+    <path d="M22 62 h26" stroke="${cfg.base}" stroke-width="2" opacity=".35"/>
+  </svg>`;
+}
+
+function shelfSVG(cfg) {
+  // cfg: {kind:'sample'|variant, order:[...], flowerBook, tiltBook}
+  const c = cfg;
+  const book = (type, x, tilt) => {
+    const col = { pink: '#ff9dc4', blue: '#a7d8f5', yellow: '#ffe066' }[type];
+    const dark = { pink: '#e0719c', blue: '#7cbde0', yellow: '#e0b800' }[type];
+    let deco = '';
+    if (type === 'pink') deco = `<rect x="${x + 5}" y="44" width="16" height="3" fill="#fff" opacity=".8"/><rect x="${x + 5}" y="52" width="16" height="3" fill="#fff" opacity=".8"/>`;
+    if (type === 'blue') deco = `<rect x="${x + 4}" y="34" width="18" height="24" rx="3" fill="#fff" opacity=".75"/><circle cx="${x + 13}" cy="46" r="6" fill="#ffb26b"/>`;
+    if (type === 'yellow') deco = `<text x="${x + 13}" y="52" font-size="20" font-weight="bold" fill="#e84545" text-anchor="middle" font-family="Trebuchet MS,sans-serif">А</text>`;
+    const flower = (type === c.flowerBook)
+      ? `<g transform="translate(${x + 13},18)"><circle r="4" fill="#ffd23f"/><g fill="#ff77a8"><circle cx="0" cy="-7" r="4"/><circle cx="6.6" cy="-2" r="4"/><circle cx="4" cy="6" r="4"/><circle cx="-4" cy="6" r="4"/><circle cx="-6.6" cy="-2" r="4"/></g><rect x="-2" y="8" width="4" height="10" fill="#6cbf4a"/></g>`
+      : '';
+    const ang = (type === c.tiltBook) ? -14 : 0;
+    return `<g transform="rotate(${ang} ${x + 13} 55)">
+      <rect x="${x}" y="24" width="26" height="62" rx="4" fill="${col}" stroke="${dark}" stroke-width="2"/>
+      <rect x="${x}" y="24" width="7" height="62" rx="3" fill="${dark}" opacity=".45"/>
+      <rect x="${x + 8}" y="27" width="2" height="56" fill="#fff" opacity=".5"/>
+      ${deco}${flower}
+    </g>`;
+  };
+  const pos = [22, 78, 132];
+  const books = c.order.map((t, i) => book(t, pos[i], c.tiltBook)).join('');
+  return `<svg viewBox="0 0 180 100" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0" y="86" width="180" height="12" rx="4" fill="#c98a3c"/>
+    <rect x="0" y="86" width="180" height="4" rx="2" fill="#e0a85e"/>
+    ${books}
+  </svg>`;
+}
+
+/* ---------- сцена «такси» (найди отличия) ---------- */
+function taxiScene(v) {
+  v = Object.assign({ sky: 'sun', flag: true, flower: true, hub: '#6cbf4a', bow: '#e84545' }, v || {});
+  const skyThing = v.sky === 'sun'
+    ? `<circle cx="46" cy="36" r="24" fill="#ffd23f"/><g stroke="#ffd23f" stroke-width="4" stroke-linecap="round">
+         <path d="M46 2 v10"/><path d="M46 60 v10"/><path d="M12 36 h10"/><path d="M70 36 h10"/>
+         <path d="M22 12 l7 7"/><path d="M70 12 l-7 7"/><path d="M22 60 l7 -7"/><path d="M70 60 l-7 -7"/></g>`
+    : `<g fill="#ffffff"><ellipse cx="46" cy="36" rx="26" ry="15"/><ellipse cx="26" cy="40" rx="16" ry="11"/><ellipse cx="66" cy="40" rx="16" ry="11"/></g>`;
+
+  const flag = v.flag
+    ? `<rect x="139" y="52" width="3" height="24" fill="#8a8a8a"/>
+       <path d="M142 52 l22 7 l-22 7 z" fill="#e84545"/>`
+    : '';
+
+  const flower = v.flower
+    ? `<g transform="translate(160,132)">
+         <circle r="3.5" fill="#ffd23f"/>
+         <g fill="#ff77a8"><circle cx="0" cy="-5" r="3"/><circle cx="5" cy="-1" r="3"/><circle cx="3" cy="4" r="3"/><circle cx="-3" cy="4" r="3"/><circle cx="-5" cy="-1" r="3"/></g>
+       </g>`
+    : '';
+
+  return `<svg viewBox="0 0 340 210" xmlns="http://www.w3.org/2000/svg">
+    <rect width="340" height="210" fill="#d6f0ff"/>
+    ${skyThing}
+    <g opacity=".9">
+      <rect x="0" y="86" width="62" height="64" fill="#ffe0a3"/><path d="M-4 88 l35 -26 l35 26 z" fill="#e84545"/>
+      <rect x="12" y="102" width="14" height="16" fill="#fff8d6"/><rect x="34" y="102" width="14" height="16" fill="#fff8d6"/>
+      <rect x="262" y="96" width="78" height="54" fill="#cfe8b0"/><path d="M258 98 l43 -28 l43 28 z" fill="#ff8c42"/>
+    </g>
+    <rect x="0" y="150" width="340" height="60" fill="#d9d2c4"/>
+    <rect x="0" y="150" width="340" height="6" fill="#bfb7a6"/>
+    <g stroke="#fff" stroke-width="5" stroke-dasharray="18 16"><path d="M0 182 h340"/></g>
+    <g transform="translate(236,116)">
+      <rect x="-8" y="30" width="12" height="44" fill="#a9754a" rx="4"/>
+      <circle cx="0" cy="20" r="26" fill="#6cbf4a"/><circle cx="-14" cy="34" r="18" fill="#7bd156"/>
+    </g>
+    <!-- машина -->
+    ${flag}
+    <ellipse cx="146" cy="176" rx="86" ry="9" fill="#2b2a4a" opacity=".16"/>
+    <rect x="64" y="118" width="150" height="42" rx="18" fill="#3f7ede"/>
+    <path d="M92 118 q4 -34 22 -34 h46 q18 0 22 34 z" fill="#7cb8f7"/>
+    <path d="M100 114 q4 -25 18 -25 h18 v25 z" fill="#e6f5ff"/>
+    <path d="M144 89 h18 q14 0 17 25 h-35 z" fill="#e6f5ff"/>
+    <rect x="122" y="74" width="26" height="12" rx="5" fill="#ffd23f"/>
+    <rect x="64" y="132" width="150" height="10" fill="#2c5fb3" opacity=".45"/>
+    ${flower}
+    <g>
+      <circle cx="100" cy="162" r="21" fill="#3a3a44"/><circle cx="100" cy="162" r="12" fill="${v.hub}"/><circle cx="100" cy="162" r="4" fill="#fff"/>
+      <circle cx="180" cy="162" r="21" fill="#3a3a44"/><circle cx="180" cy="162" r="12" fill="${v.hub}"/><circle cx="180" cy="162" r="4" fill="#fff"/>
+    </g>
+    <!-- малышка -->
+    <g transform="translate(262,118)">
+      <rect x="-9" y="30" width="8" height="30" rx="4" fill="#ffdcbb"/>
+      <rect x="1" y="30" width="8" height="30" rx="4" fill="#ffdcbb"/>
+      <path d="M-14 30 q14 -8 28 0 l4 26 q-18 6 -36 0 z" fill="#ff77a8"/>
+      <circle cx="0" cy="14" r="14" fill="#ffdcbb"/>
+      <path d="M-14 10 q4 -16 14 -16 q10 0 14 16 q-14 -8 -28 0 z" fill="#e8763a"/>
+      <circle cx="8" cy="2" r="5" fill="${v.bow}"/>
+      <circle cx="-5" cy="15" r="2" fill="#2b2a4a"/><circle cx="5" cy="15" r="2" fill="#2b2a4a"/>
+      <path d="M-4 21 q4 4 8 0" stroke="#b8484a" stroke-width="1.6" fill="none"/>
+    </g>
+    <!-- малыш -->
+    <g transform="translate(312,124)">
+      <rect x="-7" y="26" width="7" height="26" rx="3" fill="#3f7ede"/>
+      <rect x="1" y="26" width="7" height="26" rx="3" fill="#3f7ede"/>
+      <path d="M-12 26 q12 -7 24 0 l3 22 q-15 5 -30 0 z" fill="#ff8c42"/>
+      <circle cx="0" cy="12" r="12" fill="#ffdcbb"/>
+      <path d="M-12 8 q4 -14 12 -14 q8 0 12 14 q-12 -7 -24 0 z" fill="#8a5a2b"/>
+      <circle cx="-4" cy="13" r="1.8" fill="#2b2a4a"/><circle cx="4" cy="13" r="1.8" fill="#2b2a4a"/>
+    </g>
+  </svg>`;
+}
+
+/* ---------- сцена «фотография улицы» ---------- */
+function photoScene(v) {
+  v = Object.assign({ mirror: false, kid: true, roof: '#e84545', flower: true }, v || {});
+  const inner = `
+    <rect width="340" height="210" fill="#cfeaff"/>
+    <circle cx="288" cy="38" r="26" fill="#ffd23f"/>
+    <g stroke="#ffd23f" stroke-width="4" stroke-linecap="round"><path d="M288 4 v8"/><path d="M288 64 v8"/><path d="M254 38 h8"/><path d="M314 38 h8"/></g>
+    <ellipse cx="60" cy="46" rx="34" ry="16" fill="#fff" opacity=".9"/>
+    <ellipse cx="40" cy="52" rx="22" ry="12" fill="#fff" opacity=".9"/>
+    <rect x="0" y="168" width="340" height="42" fill="#8fd06a"/>
+    <rect x="0" y="164" width="340" height="8" fill="#7cc159"/>
+    <!-- дом слева -->
+    <path d="M30 122 q0 -28 34 -28 h28 q34 0 34 28 v58 h-96 z" fill="#ffe6a8"/>
+    <path d="M20 96 q40 -46 116 0 z" fill="${v.roof}"/>
+    <rect x="52" y="118" width="26" height="30" rx="12" fill="#bfe6ff" stroke="#7cbde0" stroke-width="2"/>
+    <rect x="100" y="126" width="22" height="54" rx="10" fill="#a9754a"/>
+    <circle cx="118" cy="154" r="2.5" fill="#ffd23f"/>
+    <rect x="34" y="130" width="16" height="16" rx="4" fill="#bfe6ff" stroke="#7cbde0" stroke-width="2"/>
+    <!-- дом справа -->
+    <path d="M186 128 q0 -24 30 -24 h22 q30 0 30 24 v52 h-82 z" fill="#ffd9a8"/>
+    <path d="M178 104 q34 -40 96 0 z" fill="#ff77a8"/>
+    <rect x="204" y="122" width="22" height="26" rx="10" fill="#bfe6ff" stroke="#7cbde0" stroke-width="2"/>
+    <rect x="242" y="130" width="18" height="50" rx="8" fill="#a9754a"/>
+    <!-- забор -->
+    <g fill="#fff8e0" stroke="#e0cfa4" stroke-width="1.5">
+      <rect x="146" y="150" width="9" height="20" rx="3"/><rect x="160" y="150" width="9" height="20" rx="3"/><rect x="174" y="150" width="9" height="20" rx="3"/>
+    </g>
+    <!-- дерево -->
+    <rect x="152" y="118" width="12" height="52" fill="#a9754a" rx="4"/>
+    <circle cx="158" cy="104" r="26" fill="#6cbf4a"/>
+    <circle cx="138" cy="118" r="16" fill="#7bd156"/><circle cx="178" cy="118" r="16" fill="#7bd156"/>
+    <circle cx="152" cy="96" r="4" fill="#e84545"/><circle cx="170" cy="110" r="4" fill="#e84545"/>
+    ${v.flower ? `<g transform="translate(96,152)">
+        <g fill="#fff"><circle cx="0" cy="-12" r="7"/><circle cx="12" cy="0" r="7"/><circle cx="0" cy="12" r="7"/><circle cx="-12" cy="0" r="7"/><circle cx="8" cy="-8" r="7"/><circle cx="-8" cy="-8" r="7"/><circle cx="8" cy="8" r="7"/><circle cx="-8" cy="8" r="7"/></g>
+        <circle r="7" fill="#ffd23f"/>
+      </g>` : ''}
+    <!-- малыши -->
+    <g>
+      <g transform="translate(64,150) scale(.55)">
+        <rect x="-9" y="30" width="9" height="30" rx="4" fill="#ffdcbb"/><rect x="1" y="30" width="9" height="30" rx="4" fill="#ffdcbb"/>
+        <path d="M-15 30 q15 -9 30 0 l4 26 q-19 6 -38 0 z" fill="#ff77a8"/>
+        <circle cx="0" cy="14" r="15" fill="#ffdcbb"/>
+        <path d="M-15 10 q5 -18 15 -18 q10 0 15 18 q-15 -9 -30 0 z" fill="#e8763a"/>
+      </g>
+      <g transform="translate(104,154) scale(.5)">
+        <rect x="-9" y="30" width="9" height="30" rx="4" fill="#ffdcbb"/><rect x="1" y="30" width="9" height="30" rx="4" fill="#ffdcbb"/>
+        <path d="M-15 30 q15 -9 30 0 l4 26 q-19 6 -38 0 z" fill="#6cbf4a"/>
+        <circle cx="0" cy="14" r="15" fill="#ffdcbb"/>
+        <path d="M-15 10 q5 -18 15 -18 q10 0 15 18 q-15 -9 -30 0 z" fill="#8a5a2b"/>
+      </g>
+      ${v.kid ? `<g transform="translate(142,158) scale(.45)">
+        <rect x="-9" y="30" width="9" height="30" rx="4" fill="#ffdcbb"/><rect x="1" y="30" width="9" height="30" rx="4" fill="#ffdcbb"/>
+        <path d="M-15 30 q15 -9 30 0 l4 26 q-19 6 -38 0 z" fill="#3f7ede"/>
+        <circle cx="0" cy="14" r="15" fill="#ffdcbb"/>
+        <path d="M-15 10 q5 -18 15 -18 q10 0 15 18 q-15 -9 -30 0 z" fill="#2b2a4a"/>
+      </g>` : ''}
+    </g>
+    <ellipse cx="140" cy="196" rx="16" ry="4" fill="#d9cf9a" opacity=".6"/>
+    <ellipse cx="215" cy="200" rx="14" ry="4" fill="#d9cf9a" opacity=".6"/>
+  `;
+  return `<svg viewBox="0 0 340 210" xmlns="http://www.w3.org/2000/svg">
+    ${v.mirror ? `<g transform="translate(340,0) scale(-1,1)">${inner}</g>` : inner}
+  </svg>`;
+}
+
+/* =========================================================
+   Часть 2: станции, карта, сертификат
+   ========================================================= */
+
+/* ---------- паровозик ---------- */
+function trainSVG() {
+  let wagons = '';
+  for (let i = 0; i < 5; i++) {
+    const x = 178 + i * 100;
+    wagons += `<g>
+      <rect id="wagon-${i}" x="${x}" y="86" width="90" height="58" rx="10" fill="#e7ebf3" style="transition:fill .5s"/>
+      <rect x="${x}" y="78" width="90" height="13" rx="6" fill="#c9d2e0"/>
+      <circle cx="${x + 45}" cy="115" r="17" fill="#fff" stroke="#c9d2e0" stroke-width="2"/>
+      <text id="plate-${i}" x="${x + 45}" y="122" text-anchor="middle" font-size="19" font-weight="bold" fill="#9aa6bb" font-family="Trebuchet MS,sans-serif">?</text>
+      <circle cx="${x + 22}" cy="152" r="13" fill="#3a3a44"/><circle cx="${x + 22}" cy="152" r="6" fill="#9aa6bb"/>
+      <circle cx="${x + 68}" cy="152" r="13" fill="#3a3a44"/><circle cx="${x + 68}" cy="152" r="6" fill="#9aa6bb"/>
+    </g>`;
+  }
+  return `<svg class="train-svg" viewBox="0 0 690 210" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0" y="170" width="690" height="7" fill="#b9a08a"/>
+    <g fill="#cdb79b">${Array.from({length: 15}, (_, i) => `<rect x="${8 + i * 47}" y="177" width="26" height="7" rx="3"/>`).join('')}</g>
+    ${wagons}
+    <g>
+      <rect x="10" y="52" width="76" height="92" rx="12" fill="#3f7ede"/>
+      <rect x="4" y="44" width="88" height="15" rx="7" fill="#2c5fb3"/>
+      <circle cx="48" cy="88" r="21" fill="#eaf6ff"/>
+      <circle cx="41" cy="86" r="3" fill="#2b2a4a"/><circle cx="55" cy="86" r="3" fill="#2b2a4a"/>
+      <path d="M42 95 q6 5 12 0" stroke="#2b2a4a" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M22 52 q-4 -22 10 -30 q10 8 8 22 q10 -10 20 0" fill="#f0872e"/>
+      <rect x="92" y="40" width="24" height="34" rx="7" fill="#2c5fb3"/>
+      <rect x="88" y="34" width="32" height="10" rx="5" fill="#1e4a8f"/>
+      <circle cx="104" cy="22" r="9" fill="#e9eef6"/><circle cx="118" cy="10" r="6" fill="#e9eef6"/>
+      <path d="M116 80 h44 v58 h-44 z" fill="#5a9bf0"/>
+      <rect x="116" y="80" width="44" height="10" fill="#2c5fb3"/>
+      <circle cx="44" cy="152" r="18" fill="#3a3a44"/><circle cx="44" cy="152" r="8" fill="#9aa6bb"/>
+      <circle cx="108" cy="152" r="18" fill="#3a3a44"/><circle cx="108" cy="152" r="8" fill="#9aa6bb"/>
+      <rect x="156" y="120" width="14" height="34" rx="6" fill="#2c5fb3"/>
+    </g>
+  </svg>`;
+}
+
+/* ---------- математика: варианты ответов ---------- */
+function withDistractors(a, n) {
+  const s = new Set([a]);
+  let guard = 0;
+  while (s.size < n && guard++ < 200) {
+    const d = a + rnd(-3, 3);
+    if (d >= 0) s.add(d);
+  }
+  return shuffle(Array.from(s));
+}
+
+let state = { name: '', done: new Array(9).fill(false), started: false };
+function saveState() { try { localStorage.setItem('solnechny-gorod', JSON.stringify(state)); } catch (e) {} }
+function loadState() {
+  try {
+    const raw = localStorage.getItem('solnechny-gorod');
+    if (raw) {
+      const p = JSON.parse(raw);
+      if (p && Array.isArray(p.done)) state = Object.assign(state, p);
+      while (state.done.length < 9) state.done.push(false);
+    }
+  } catch (e) {}
+}
+
+/* =========================================================
+   СТАНЦИИ
+   ========================================================= */
+const STATIONS = [
+  /* ---------------- 1 ---------------- */
+  {
+    id: 'train', num: 1, icon: '🚂', color: '#e84545', hero: 'pachkulya',
+    title: 'По рельсам, по шпалам',
+    story: 'В Солнечный город Незнайка, Кнопочка и Пачкуля Пестренький добирались с большими приключениями. Один раз они чуть было не столкнулись с поездом!',
+    task: 'Помоги машинисту: реши примеры — и каждый вагончик раскрасится в свой цвет.',
+    mount(stage, api) {
+      const ex = [
+        { q: '5 + 4', a: 9, c: '#e84545' },
+        { q: '7 − 1', a: 6, c: '#ff8c42' },
+        { q: '9 − 6', a: 3, c: '#6cbf4a' },
+        { q: '8 + 0', a: 8, c: '#3f7ede' },
+        { q: '6 − 2', a: 4, c: '#9b5de5' }
+      ];
+      stage.innerHTML = trainSVG() + `
+        <div style="text-align:center;margin-top:10px">
+          <div class="muted small" id="tq"></div>
+          <div class="eq" id="tex" style="margin:4px 0 14px"></div>
+          <div class="opts center" id="topts" style="justify-content:center"></div>
+        </div>`;
+      let i = 0;
+      const topts = $('#topts', stage);
+      function show() {
+        $('#tq', stage).textContent = 'Вагончик ' + (i + 1) + ' из ' + ex.length;
+        $('#tex', stage).textContent = ex[i].q + ' = ?';
+        topts.innerHTML = withDistractors(ex[i].a, 4)
+          .map(v => '<button class="opt" data-v="' + v + '">' + v + '</button>').join('');
+      }
+      topts.addEventListener('click', e => {
+        const b = e.target.closest('.opt'); if (!b || b.disabled) return;
+        const v = +b.dataset.v;
+        if (v === ex[i].a) {
+          b.classList.add('good'); sndOk();
+          const wg = $('#wagon-' + i, stage); if (wg) wg.setAttribute('fill', ex[i].c);
+          const pl = $('#plate-' + i, stage);
+          if (pl) { pl.textContent = ex[i].a; pl.setAttribute('fill', '#ffffff'); }
+          api.step(i + 1, ex.length);
+          api.ok('Верно! Вагончик стал ' + (i === 0 ? 'красным' : i === 1 ? 'оранжевым' : i === 2 ? 'зелёным' : i === 3 ? 'синим' : 'фиолетовым') + '.');
+          i++;
+          if (i >= ex.length) { api.finish('Все вагончики раскрашены — поезд готов ехать в Солнечный город!'); }
+          else setTimeout(show, 650);
+        } else {
+          b.classList.add('bad'); sndErr();
+          api.no('Не спеши, посчитай ещё раз.');
+          setTimeout(() => b.classList.remove('bad'), 700);
+        }
+      });
+      show();
+    }
+  },
+
+  /* ---------------- 2 ---------------- */
+  {
+    id: 'soda', num: 2, icon: '🥤', color: '#6cbf4a', hero: 'neznaika',
+    title: 'Газировка с сиропом',
+    story: 'В зоопарке Солнечного города Незнайка и Пачкуля никак не могли оторваться от киоска с газированной водой. Они перепробовали все виды сиропов: и вишнёвый, и апельсиновый, и клубничный!',
+    task: 'Расставь стаканчики в пустые клетки так, чтобы в каждом ряду и каждом столбце стояли три разных стаканчика. Нажимай на клетку, чтобы сменить напиток.',
+    mount(stage, api) {
+      const solution = ['A', 'B', 'C', 'B', 'C', 'A', 'C', 'A', 'B'];
+      const fixed = { 0: true, 2: true, 3: true };
+      let cur = solution.map((k, idx) => fixed[idx] ? k : 'A');
+      const order = ['A', 'B', 'C'];
+      stage.innerHTML = `
+        <div class="soda-grid" id="sg">${cur.map((k, idx) =>
+          '<div class="soda-cell' + (fixed[idx] ? ' fixed' : '') + '" data-i="' + idx + '">' + drinkSVG(k) + '</div>'
+        ).join('')}</div>
+        <div class="row center" style="margin-top:14px">
+          <span class="chip">🍓 клубника</span><span class="chip">🍒 вишня</span><span class="chip">🍊 апельсин</span>
+        </div>
+        <div class="row center" style="margin-top:14px"><button class="btn blue" id="check">Проверить</button></div>`;
+      const grid = $('#sg', stage);
+      grid.addEventListener('click', e => {
+        const cell = e.target.closest('.soda-cell'); if (!cell) return;
+        const idx = +cell.dataset.i; if (fixed[idx]) { toast('Этот стаканчик уже стоит на месте'); return; }
+        sndPop();
+        cur[idx] = order[(order.indexOf(cur[idx]) + 1) % 3];
+        cell.innerHTML = drinkSVG(cur[idx]);
+      });
+      $('#check', stage).addEventListener('click', () => {
+        let bad = [];
+        for (let r = 0; r < 3; r++) {
+          const row = [cur[r * 3], cur[r * 3 + 1], cur[r * 3 + 2]];
+          if (new Set(row).size < 3) bad.push(r);
+        }
+        for (let c = 0; c < 3; c++) {
+          const col = [cur[c], cur[3 + c], cur[6 + c]];
+          if (new Set(col).size < 3) bad.push(c);
+        }
+        if (bad.length === 0) {
+          api.step(1, 1);
+          api.finish('Правильно! В каждом ряду и столбце — свой напиток, как у настоящего кондитера.');
+          grid.style.boxShadow = '0 0 0 4px #6cbf4a';
+        } else {
+          sndErr();
+          api.no('Пока нет. Проверь ряды и столбцы: где-то встретились одинаковые стаканчики.');
+          grid.classList.add('bad'); setTimeout(() => grid.classList.remove('bad'), 450);
+        }
+      });
+    }
+  },
+
+  /* ---------------- 3 ---------------- */
+  {
+    id: 'zoo', num: 3, icon: '🐒', color: '#ff8c42', hero: 'knopochka',
+    title: 'В зоопарке Солнечного города',
+    story: 'В зоопарке Незнайке очень понравились обезьяны. Одна обезьяна нашла маленькое зеркальце и носилась с ним по всей клетке — так смешно было смотреть на её ужимки!',
+    task: 'Обезьянки разобрали цифры. Верни каждую на место: реши примеры на вычитание.',
+    mount(stage, api) {
+      const items = [
+        { ex: '10 − 6 = ?', a: 4, opts: [4, 5, 3] },
+        { ex: '? − 3 = 3', a: 6, opts: [5, 6, 7] },
+        { ex: '7 − ? = 5', a: 2, opts: [2, 3, 1] },
+        { ex: '5 − ? = 2', a: 3, opts: [3, 2, 4] },
+        { ex: '9 − 2 = ?', a: 7, opts: [6, 7, 8] },
+        { ex: '3 − 1 = ?', a: 2, opts: [1, 2, 3] }
+      ];
+      let solved = 0;
+      stage.innerHTML = '<div class="zoo-grid">' + items.map((it, i) => `
+        <div class="zoo-card" data-i="${i}">
+          <div class="ex">${it.ex}</div>
+          <div class="small-opts">${shuffle(it.opts).map(v =>
+            '<button class="opt" data-v="' + v + '">' + v + '</button>').join('')}</div>
+        </div>`).join('') + '</div>';
+
+      stage.addEventListener('click', e => {
+        const b = e.target.closest('.opt'); if (!b) return;
+        const card = b.closest('.zoo-card');
+        if (card.classList.contains('solved')) return;
+        const it = items[+card.dataset.i];
+        if (+b.dataset.v === it.a) {
+          card.classList.add('solved'); b.classList.add('good'); sndOk();
+          solved++; api.step(solved, items.length);
+          card.querySelectorAll('.opt').forEach(x => x.disabled = true);
+          api.ok('Верно! Осталось примеров: ' + (items.length - solved));
+          if (solved === items.length) api.finish('Все обезьянки довольны — и снова носятся с зеркальцем!');
+        } else {
+          b.classList.add('bad'); sndErr();
+          api.no('Почти! Попробуй другое число.');
+          setTimeout(() => b.classList.remove('bad'), 700);
+        }
+      });
+    }
+  },
+
+  /* ---------------- 4 ---------------- */
+  {
+    id: 'chess', num: 4, icon: '♟️', color: '#9b5de5', hero: 'znayka',
+    title: 'В Шахматном городке',
+    story: 'В Солнечном городе Незнайка с друзьями побывали в Шахматном городке. Вся его площадь была разбита на клетки и представляла собой огромную шахматную доску, а все постройки были сделаны в виде шахматных фигур.',
+    task: 'Помоги Незнайке всё сосчитать: выбери две башни так, чтобы вместе они составили число на крыше домика.',
+    mount(stage, api) {
+      const rounds = [
+        { t: 5, tiles: [1, 2, 3, 4, 5] },
+        { t: 6, tiles: [2, 3, 4, 5] },
+        { t: 4, tiles: [1, 2, 3, 4, 6] }
+      ];
+      let r = 0, sel = [];
+      stage.innerHTML = '<div id="cwrap" style="text-align:center"></div>';
+      const wrap = $('#cwrap', stage);
+      function house(cfg) {
+        return `<svg viewBox="0 0 200 132" style="width:100%;max-width:260px">
+          <path d="M16 60 L100 8 L184 60 Z" fill="${cfg.roofColor}"/>
+          <path d="M26 58 L100 14 L174 58 Z" fill="#ffffff" opacity=".18"/>
+          <text x="100" y="47" text-anchor="middle" font-size="30" font-weight="bold"
+                fill="#fff" font-family="Trebuchet MS,sans-serif">${cfg.roof}</text>
+          <rect x="34" y="60" width="132" height="64" rx="8" fill="#ffe6a8" stroke="#e0b96a" stroke-width="3"/>
+          <rect x="46" y="76" width="38" height="34" rx="6" fill="${cfg.w1 ? '#bfe6ff' : '#fff'}" stroke="#7cbde0" stroke-width="3"/>
+          <text x="65" y="102" text-anchor="middle" font-size="24" font-weight="bold" fill="#2c5fb3" font-family="Trebuchet MS,sans-serif">${cfg.w1 || '?'}</text>
+          <text x="100" y="104" text-anchor="middle" font-size="26" font-weight="bold" fill="#e0b96a" font-family="Trebuchet MS,sans-serif">+</text>
+          <rect x="116" y="76" width="38" height="34" rx="6" fill="${cfg.w2 ? '#bfe6ff' : '#fff'}" stroke="#7cbde0" stroke-width="3"/>
+          <text x="135" y="102" text-anchor="middle" font-size="24" font-weight="bold" fill="#2c5fb3" font-family="Trebuchet MS,sans-serif">${cfg.w2 || '?'}</text>
+        </svg>`;
+      }
+      function render() {
+        const rd = rounds[r];
+        sel = [];
+        wrap.innerHTML = `
+          <div class="muted small" style="margin-bottom:6px">Домик ${r + 1} из ${rounds.length}</div>
+          <div id="houseHost">${house({ roof: rd.t, roofColor: ['#9b5de5', '#3f7ede', '#6cbf4a'][r], w1: sel[0], w2: sel[1] })}</div>
+          <div class="tiles" id="tiles">${shuffle(rd.tiles).map(v =>
+            '<button class="tile" data-v="' + v + '">' + v + '</button>').join('')}</div>
+          <div class="muted small">Выбери два числа-башни: вместе они дают число на крыше</div>`;
+        const tl = $('#tiles', wrap);
+        tl.addEventListener('click', e => {
+          const t = e.target.closest('.tile'); if (!t) return;
+          const v = +t.dataset.v;
+          const idx = sel.indexOf(v);
+          if (idx >= 0) { sel.splice(idx, 1); }
+          else { if (sel.length === 2) sel = []; sel.push(v); }
+          sndPop();
+          // перерисовать окна без полной перерисовки плиток
+          const svgHost = $('#houseHost', wrap);
+          svgHost.innerHTML = house({ roof: rd.t, roofColor: ['#9b5de5', '#3f7ede', '#6cbf4a'][r], w1: sel[0], w2: sel[1] });
+          $$('.tile', tl).forEach(x => x.classList.toggle('sel', sel.includes(+x.dataset.v)));
+          if (sel.length === 2) {
+            const sum = sel[0] + sel[1];
+            if (sum === rd.t) {
+              $$('.tile', tl).forEach(x => { if (sel.includes(+x.dataset.v)) x.classList.add('ok'); });
+              sndOk(); r++; api.step(r, rounds.length);
+              api.ok('Верно! ' + sel[0] + ' + ' + sel[1] + ' = ' + rd.t);
+              sel = [];
+              if (r >= rounds.length) { wrap.innerHTML = '<div style="font-size:40px">🏠🏠🏠</div><p class="muted">Все домики сосчитаны. Знайка бы гордился!</p>'; api.finish('Все три домика сосчитаны — можно идти дальше!'); }
+              else setTimeout(render, 900);
+            } else {
+              sndErr();
+              api.no('Получилось ' + sum + ', а на крыше ' + rd.t + '. Попробуй другую пару.');
+              tl.classList.add('bad'); setTimeout(() => tl.classList.remove('bad'), 420);
+              sel = [];
+              setTimeout(() => {
+                svgHost.innerHTML = house({ roof: rd.t, roofColor: ['#9b5de5', '#3f7ede', '#6cbf4a'][r], w1: '', w2: '' });
+                $$('.tile', tl).forEach(x => x.classList.remove('sel'));
+              }, 480);
+            }
+          }
+        });
+      }
+      render();
+    }
+  },
+
+  /* ---------------- 5 ---------------- */
+  {
+    id: 'mittens', num: 5, icon: '🧤', color: '#ff77a8', hero: 'knopochka',
+    title: 'День рукавичек',
+    story: 'Каждый год в Солнечном городе проходит Праздник солнечных братьев, или День рукавичек. Все разбрасывают рукавички и меняются ими, подбирая пары. Кто обменялся — тот стал солнечным братом.',
+    task: 'Найди одинаковые рукавички и соедини их в пары. Сколько получилось пар?',
+    mount(stage, api) {
+      const kinds = ['snow', 'dots', 'zig', 'stripe'];
+      const deck = shuffle(kinds.concat(kinds));
+      let open = null, pairs = 0;
+      stage.innerHTML = `
+        <div class="mitten-grid" id="mg">${deck.map((k, i) =>
+          '<div class="mitten" data-k="' + k + '" data-i="' + i + '">' + mittenSVG(k) + '</div>').join('')}</div>
+        <div class="row center" style="margin-top:14px"><span class="chip">Найдено пар: <b id="pc">0</b> из 4</span></div>`;
+      const mg = $('#mg', stage);
+      mg.addEventListener('click', e => {
+        const m = e.target.closest('.mitten'); if (!m || m.classList.contains('matched')) return;
+        if (m === open) { m.classList.remove('sel'); open = null; return; }
+        sndPop();
+        m.classList.add('sel');
+        if (!open) { open = m; return; }
+        if (open.dataset.k === m.dataset.k) {
+          open.classList.remove('sel'); open.classList.add('matched');
+          m.classList.remove('sel'); m.classList.add('matched');
+          open = null; pairs++;
+          $('#pc', stage).textContent = pairs;
+          sndOk(); api.step(pairs, 4);
+          api.ok('Пара найдена! Всего пар: ' + pairs);
+          if (pairs === 4) api.finish('Все рукавички нашли своих хозяев — теперь у всех есть солнечные братья!');
+        } else {
+          api.no('Не пара. Попробуй другие рукавички.');
+          sndErr();
+          const prev = open;
+          setTimeout(() => { prev.classList.remove('sel'); m.classList.remove('sel'); }, 520);
+          open = null;
+        }
+      });
+    }
+  },
+
+  /* ---------------- 6 ---------------- */
+  {
+    id: 'taxi', num: 6, icon: '🚕', color: '#ffd23f', hero: 'neznaika',
+    title: 'Удивительное такси',
+    story: 'Вот такое такси было в Солнечном городе: вместо водителя — кнопки с названиями улиц. Нажимаешь нужную кнопку, и машина сама везёт куда надо. А ультразвуковое ло­каторное устройство предотвращает наезды и столкновения.',
+    task: 'Рассмотри рисунки и найди 5 отличий. Нажимай на то место на правой картинке, где заметил отличие.',
+    mount(stage, api) {
+      const spots = [
+        { id: 'sky', x: 46, y: 36, r: 32, name: 'небо' },
+        { id: 'flag', x: 142, y: 58, r: 24, name: 'флажок' },
+        { id: 'flower', x: 160, y: 132, r: 22, name: 'цветок' },
+        { id: 'wheel', x: 100, y: 162, r: 28, name: 'колесо' },
+        { id: 'bow', x: 270, y: 120, r: 22, name: 'бант' }
+      ];
+      let found = 0;
+      const hotspots = spots.map(s =>
+        `<circle class="hotspot" data-id="${s.id}" cx="${s.x}" cy="${s.y}" r="${s.r}"/>`).join('');
+      stage.innerHTML = `
+        <div class="diff-wrap">
+          <div class="diff-panel"><span class="lbl">образец</span>${taxiScene({})}</div>
+          <div class="diff-panel" id="right"><span class="lbl">найди отличия</span>
+            <div style="position:relative">
+              ${taxiScene({ sky: 'cloud', flag: false, flower: false, hub: '#3f7ede', bow: '#ffd23f' })
+                .replace('</svg>', '<g id="hs">' + hotspots + '</g></svg>')}
+            </div>
+          </div>
+        </div>
+        <div class="row center" style="margin-top:14px"><span class="chip">Найдено: <b id="dc">0</b> из 5</span></div>`;
+      const right = $('#right', stage);
+      right.addEventListener('click', e => {
+        const c = e.target.closest('.hotspot'); if (!c) return;
+        const id = c.dataset.id;
+        const s = spots.find(x => x.id === id);
+        if (c.dataset.found) { toast('Это отличие уже найдено'); return; }
+        c.dataset.found = '1';
+        const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        ring.setAttribute('cx', s.x); ring.setAttribute('cy', s.y); ring.setAttribute('r', s.r + 4);
+        ring.setAttribute('class', 'found-ring');
+        ring.style.transformOrigin = s.x + 'px ' + s.y + 'px';
+        c.parentNode.appendChild(ring);
+        found++;
+        $('#dc', stage).textContent = found;
+        sndOk(); api.step(found, 5);
+        api.ok('Есть! Отличие: ' + s.name + '.');
+        if (found === 5) api.finish('Все пять отличий найдены — такси готово везти тебя по улицам Солнечного города!');
+      });
+    }
+  },
+
+  /* ---------------- 7 ---------------- */
+  {
+    id: 'books', num: 7, icon: '📚', color: '#3f7ede', hero: 'kubik',
+    title: 'На книжной фабрике',
+    story: 'На книжной фабрике Солнечного города делались самые разные книги: маленькие и большие, тоненькие и толстые, книжки-картинки и книжки-игрушки, со сказками, рассказами, ребусами и фокусами.',
+    task: 'Рассмотри полку в рамочке. Найди в нижних рядах точно такое же расположение книг и нажми на него.',
+    mount(stage, api) {
+      const sample = { order: ['pink', 'blue', 'yellow'], flowerBook: 'pink', tiltBook: 'pink' };
+      const variants = [
+        { ok: true, cfg: { order: ['pink', 'blue', 'yellow'], flowerBook: 'pink', tiltBook: 'pink' }, cap: 'полка 1' },
+        { ok: false, cfg: { order: ['blue', 'pink', 'yellow'], flowerBook: 'pink', tiltBook: 'pink' }, cap: 'полка 2' },
+        { ok: false, cfg: { order: ['pink', 'blue', 'yellow'], flowerBook: 'blue', tiltBook: 'pink' }, cap: 'полка 3' },
+        { ok: false, cfg: { order: ['pink', 'blue', 'yellow'], flowerBook: 'pink', tiltBook: null }, cap: 'полка 4' }
+      ];
+      const mixed = shuffle(variants);
+      stage.innerHTML = `
+        <div style="border:4px solid #e84545;border-radius:16px;padding:8px;max-width:420px;margin:0 auto;background:#fff">
+          ${shelfSVG(sample)}
+        </div>
+        <div class="shelf-opts" style="margin-top:16px">
+          ${mixed.map((v, i) => '<div class="shelf" data-ok="' + (v.ok ? 1 : 0) + '">' + shelfSVG(v.cfg) + '<div class="cap">' + (i + 1) + '</div></div>').join('')}
+        </div>`;
+      stage.addEventListener('click', e => {
+        const s = e.target.closest('.shelf'); if (!s || s.dataset.locked) return;
+        if (s.dataset.ok === '1') {
+          s.classList.add('pick'); s.dataset.locked = '1'; sndOk(); api.step(1, 1);
+          api.finish('Точно такая же полка! Незнайка уже несёт книжки малышам.');
+        } else {
+          s.classList.add('bad'); sndErr();
+          api.no('Не эта. Посмотри на порядок книг, на наклон и на цветочек.');
+          setTimeout(() => s.classList.remove('bad'), 600);
+        }
+      });
+    }
+  },
+
+  /* ---------------- 8 ---------------- */
+  {
+    id: 'photo', num: 8, icon: '📷', color: '#6cbf4a', hero: 'neznaika',
+    title: 'Правильная фотография',
+    story: 'Незнайка решил стать настоящим фотографом. «Фотография — моментальное искусство. Бац — и готово!» — говорил он. Но сначала надо было запомнить улицу Зелёного города.',
+    task: 'Запомни улицу, которую снимал Незнайка. Через несколько секунд картинка исчезнет — и нужно выбрать ту фотографию, которую он сделал.',
+    mount(stage, api) {
+      const variants = [
+        { ok: true, cfg: {}, cap: '' },
+        { ok: false, cfg: { mirror: true }, cap: '' },
+        { ok: false, cfg: { kid: false }, cap: '' },
+        { ok: false, cfg: { roof: '#6cbf4a' }, cap: '' }
+      ];
+      const mixed = shuffle(variants);
+      stage.innerHTML = `
+        <div class="photo-scene" id="scene">${photoScene({})}</div>
+        <div class="timer"><i id="tbar"></i></div>
+        <div class="muted small" id="tmsg" style="text-align:center;margin-top:8px">Запоминай… 7</div>
+        <div id="photoStage" style="margin-top:14px"></div>`;
+      let left = 7;
+      const bar = $('#tbar', stage), msg = $('#tmsg', stage);
+      const iv = setInterval(() => {
+        left--;
+        bar.style.width = Math.max(0, left / 7 * 100) + '%';
+        msg.textContent = 'Запоминай… ' + Math.max(0, left);
+        if (left <= 0) {
+          clearInterval(iv);
+          $('#scene', stage).style.display = 'none';
+          bar.style.display = 'none';
+          msg.innerHTML = 'А теперь выбери правильную фотографию:';
+          const ps = $('#photoStage', stage);
+          ps.innerHTML = '<div class="photo-opts">' + mixed.map((v, i) =>
+            '<div class="photo-opt" data-ok="' + (v.ok ? 1 : 0) + '">' + photoScene(v.cfg) + '</div>').join('') + '</div>';
+        }
+      }, 1000);
+
+      stage.addEventListener('click', e => {
+        const p = e.target.closest('.photo-opt'); if (!p || p.dataset.locked) return;
+        if (p.dataset.ok === '1') {
+          p.classList.add('pick'); p.dataset.locked = '1';
+          sndOk(); api.step(1, 1);
+          api.finish('Это и есть кадр Незнайки! Фотография получилась правильная.');
+        } else {
+          p.classList.add('bad'); sndErr();
+          api.no('Не этот кадр. Вспомни: дома, цветок и малыши стояли иначе.');
+          setTimeout(() => p.classList.remove('bad'), 700);
+        }
+      });
+    }
+  },
+
+  /* ---------------- 9 ---------------- */
+  {
+    id: 'quiz', num: 9, icon: '🎈', color: '#e84545', hero: 'neznaika',
+    title: 'Возвращение в Солнечный город',
+    story: 'Путешествие подходит к концу. Знайка проверяет, хорошо ли ты запомнил историю Незнайки и его друзей.',
+    task: 'Ответь на четыре вопроса о книге Николая Носова «Незнайка в Солнечном городе».',
+    mount(stage, api) {
+      const qs = [
+        {
+          q: 'Как звали малышку, с которой Незнайка подружился и которая очень любила наряжаться?',
+          opts: ['Кнопочка', 'Синеглазка', 'Мушка'], a: 'Кнопочка'
+        },
+        {
+          q: 'Что подарил Незнайке волшебник, чтобы исполнялись добрые желания?',
+          opts: ['Волшебную палочку', 'Шахматного коня', 'Газированный автомобиль'], a: 'Волшебную палочку'
+        },
+        {
+          q: 'На чём работали автомобили в Солнечном городе?',
+          opts: ['На газированной воде с сиропом', 'На дровах', 'На солнечных батареях'], a: 'На газированной воде с сиропом'
+        },
+        {
+          q: 'Кто в Солнечном городе был архитектором и придумывал удивительные дома?',
+          opts: ['Кубик', 'Пачкуля Пестренький', 'Винтик'], a: 'Кубик'
+        }
+      ];
+      let qi = 0;
+      stage.innerHTML = '<div id="qwrap"></div>';
+      const wrap = $('#qwrap', stage);
+      function render() {
+        const it = qs[qi];
+        wrap.innerHTML = `
+          <div class="muted small">Вопрос ${qi + 1} из ${qs.length}</div>
+          <div class="quiz-q">${it.q}</div>
+          <div class="quiz-opts">${shuffle(it.opts).map(o =>
+            '<button class="quiz-opt" data-v="' + o + '">' + o + '</button>').join('')}</div>`;
+        wrap.querySelectorAll('.quiz-opt').forEach(b => {
+          b.addEventListener('click', () => {
+            if (b.disabled) return;
+            if (b.dataset.v === it.a) {
+              b.classList.add('good'); sndOk();
+              wrap.querySelectorAll('.quiz-opt').forEach(x => x.disabled = true);
+              qi++; api.step(qi, qs.length);
+              api.ok('Верно!');
+              if (qi >= qs.length) api.finish('Знайка доволен: историю ты знаешь на отлично!');
+              else setTimeout(render, 750);
+            } else {
+              b.classList.add('bad'); sndErr();
+              api.no('Не угадал. Подумай ещё!');
+              setTimeout(() => b.classList.remove('bad'), 700);
+            }
+          });
+        });
+      }
+      render();
+    }
+  }
+];
+
+/* =========================================================
+   ОБОЛОЧКА
+   ========================================================= */
+let current = 0;
+
+function renderHUD() {
+  const done = state.done.filter(Boolean).length;
+  $('#hud').innerHTML = `
+    <div class="logo"><span class="sun">☀️</span> Незнайка в Солнечном городе</div>
+    <div class="stars">${state.done.map(d => '<span class="star' + (d ? ' on' : '') + '">⭐</span>').join('')}</div>
+    <button class="mini" id="toMap">Карта</button>
+    <button class="mini" id="reset">Начать заново</button>`;
+  $('#toMap').onclick = showMap;
+  $('#reset').onclick = () => {
+    if (!confirm('Начать путешествие заново? Все звёздочки сбросятся.')) return;
+    state = { name: state.name, done: new Array(9).fill(false), started: true };
+    saveState(); renderHUD(); showMap();
+  };
+  void done;
+}
+
+function confettiBurst(n) {
+  const colors = ['#ffd23f', '#ff8c42', '#e84545', '#3f7ede', '#6cbf4a', '#9b5de5', '#ff77a8'];
+  for (let i = 0; i < (n || 30); i++) {
+    const d = document.createElement('div');
+    d.className = 'confetti';
+    d.style.left = Math.random() * 100 + 'vw';
+    d.style.background = colors[i % colors.length];
+    d.style.animationDuration = (1.6 + Math.random() * 1.4) + 's';
+    d.style.animationDelay = (Math.random() * 0.4) + 's';
+    document.body.appendChild(d);
+    setTimeout(() => d.remove(), 3600);
+  }
+}
+
+function showIntro() {
+  const view = $('#view');
+  view.innerHTML = `
+    <div class="card">
+      <div class="intro-grid">
+        <div>
+          <div class="st-kicker">Интерактивный квест · 7–10 лет</div>
+          <h1>Незнайка в Солнечном городе</h1>
+          <p class="intro-text">Незнайка, Кнопочка и Пачкуля Пестренький отправляются в Солнечный город —
+          город удивительных домов, газированных автомобилей и шахматных площадей.
+          Пройди девять станций, реши задания — и собери все девять звёздочек!</p>
+          <div class="bubble" style="margin-top:14px">
+            Привет! Я Незнайка. Один я точно заблужусь в таком большом городе.
+            Пойдёшь со мной? Как тебя зовут?
+          </div>
+          <div class="namebox">
+            <input id="pname" maxlength="20" placeholder="Твоё имя" value="${state.name || ''}">
+            <button class="btn" id="startBtn">В путь! →</button>
+          </div>
+          <p class="small muted" style="margin-top:12px">Задания: счёт, логика, внимание и память — по мотивам книги Николая Носова.</p>
+        </div>
+        <div>${charSVG('neznaika')}</div>
+      </div>
+    </div>`;
+  const go = () => {
+    const nm = ($('#pname').value || '').trim();
+    state.name = nm || 'друг';
+    state.started = true;
+    saveState(); renderHUD(); showMap(); sndPop();
+  };
+  $('#startBtn').onclick = go;
+  $('#pname').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+}
+
+function showMap() {
+  const view = $('#view');
+  const doneCount = state.done.filter(Boolean).length;
+  view.innerHTML = `
+    <div class="card">
+      <div class="row" style="align-items:flex-end">
+        <div>
+          <div class="st-kicker">Карта путешествия</div>
+          <h2 style="margin:2px 0 0">Солнечный город</h2>
+        </div>
+        <div class="spacer"></div>
+        <span class="chip">⭐ ${doneCount} из ${STATIONS.length}</span>
+      </div>
+      <p class="muted" style="margin:6px 0 16px">Станции открываются по порядку — как улицы в Солнечном городе.
+      ${doneCount === STATIONS.length ? 'Все станции пройдены — забери свой диплом!' : 'Иди по маршруту и собирай звёздочки.'}</p>
+      <div class="route-grid">
+        ${STATIONS.map((s, i) => {
+          const done = state.done[i];
+          const locked = i > 0 && !state.done[i - 1];
+          return `<button class="station-card ${done ? 'done' : ''} ${locked ? 'locked' : ''}" data-i="${i}" ${locked ? 'disabled' : ''}>
+            <span class="num" style="background:${s.color}">${locked ? '🔒' : i + 1}</span>
+            <span class="nm">${s.title}</span>
+            <span class="sub">${done ? 'Пройдено — можно повторить' : locked ? 'Откроется после станции ' + i : 'Задание внутри'}</span>
+            <span class="mark">${done ? '✅' : ''}</span>
+            <span class="icon-big">${s.icon}</span>
+          </button>`;
+        }).join('')}
+      </div>
+      ${doneCount === STATIONS.length ? '<div class="row center" style="margin-top:18px"><button class="btn" id="toFinal">Получить диплом 🎉</button></div>' : ''}
+    </div>`;
+  $$('.station-card', view).forEach(b => {
+    b.onclick = () => { if (!b.disabled) { sndPop(); openStation(+b.dataset.i); } };
+  });
+  const tf = $('#toFinal', view); if (tf) tf.onclick = showFinal;
+}
+
+function openStation(i, force) {
+  if (!force && i > 0 && !state.done[i - 1]) { toast('Сначала пройди предыдущую станцию'); return; }
+  current = i;
+  const st = STATIONS[i];
+  const view = $('#view');
+  view.innerHTML = `
+    <div class="card">
+      <div class="st-top">
+        <div>${charSVG(st.hero)}</div>
+        <div>
+          <div class="st-kicker">Станция ${i + 1} из ${STATIONS.length}</div>
+          <h2 style="margin:2px 0 6px">${st.icon} ${st.title}</h2>
+          <p class="muted" style="margin:0">${st.story}</p>
+        </div>
+      </div>
+      <div class="task">
+        <div class="task-head">
+          <div class="qmark">?</div>
+          <div class="txt">${st.task}</div>
+        </div>
+        <div class="progressline"><i id="pl"></i></div>
+        <div id="stage"></div>
+        <div class="feedback" id="fb"></div>
+      </div>
+      <div class="st-footer">
+        <button class="btn ghost" id="back">← К карте</button>
+        <div class="spacer"></div>
+        <button class="btn green" id="next" style="display:none">Дальше →</button>
+      </div>
+    </div>`;
+
+  const fb = $('#fb'), pl = $('#pl'), nextBtn = $('#next');
+  const api = {
+    step: (d, t) => { pl.style.width = Math.min(100, d / t * 100) + '%'; },
+    ok: m => { fb.className = 'feedback ok'; fb.textContent = m || 'Молодец!'; },
+    no: m => { fb.className = 'feedback no'; fb.textContent = m || 'Попробуй ещё.'; },
+    finish: m => {
+      pl.style.width = '100%';
+      fb.className = 'feedback ok';
+      fb.textContent = (m || 'Станция пройдена!') + ' ⭐';
+      sndWin();
+      if (!state.done[i]) { state.done[i] = true; saveState(); renderHUD(); }
+      nextBtn.style.display = 'inline-block';
+      nextBtn.textContent = (i === STATIONS.length - 1) ? 'К диплому →' : 'Следующая станция →';
+      confettiBurst(16);
+    }
+  };
+  $('#back').onclick = showMap;
+  nextBtn.onclick = () => {
+    if (i === STATIONS.length - 1) showFinal();
+    else { openStation(i + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  };
+  st.mount($('#stage', view), api);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showFinal() {
+  const total = STATIONS.length;
+  const done = state.done.filter(Boolean).length;
+  const view = $('#view');
+  const all = done === total;
+  view.innerHTML = `
+    <div class="card">
+      <div class="cert">
+        <div style="font-size:34px">☀️ 🎈 🚂</div>
+        <h2>${all ? 'Диплом путешественника по Солнечному городу' : 'Почти получилось!'}</h2>
+        <div class="name">${state.name || 'друг'}</div>
+        <p style="font-size:17px;margin:6px 0">${all
+          ? 'прошёл(ла) все девять станций, разгадал(а) загадки Незнайки, Кнопочки и Пачкули и получил(а) звание <b>почётного жителя Солнечного города</b>.'
+          : 'прошёл(ла) ' + done + ' из ' + total + ' станций. Возвращайся на карту и продолжи путешествие!'}</p>
+        <div class="stars-big">${Array.from({ length: total }, (_, i) => state.done[i] ? '⭐' : '☆').join(' ')}</div>
+        ${all ? '<p class="small muted">Николай Носов, «Незнайка в Солнечном городе» · 1958</p>' : ''}
+        <div class="row center" style="margin-top:16px">
+          <button class="btn blue" id="toMap2">На карту</button>
+          ${all ? '<button class="btn" id="again">Пройти снова</button>' : ''}
+        </div>
+      </div>
+      <div class="row" style="justify-content:center;margin-top:6px;gap:2px">
+        <div style="width:110px">${charSVG('neznaika')}</div>
+        <div style="width:110px">${charSVG('knopochka')}</div>
+        <div style="width:110px">${charSVG('pachkulya')}</div>
+        <div style="width:110px">${charSVG('znayka')}</div>
+      </div>
+    </div>`;
+  $('#toMap2').onclick = showMap;
+  const ag = $('#again', view);
+  if (ag) ag.onclick = () => {
+    state.done = new Array(total).fill(false); saveState(); renderHUD();
+    confettiBurst(40); showMap();
+  };
+  if (all) { confettiBurst(60); sndWin(); }
+}
+
+/* ---------- запуск ---------- */
+loadState();
+renderHUD();
+if (state.started && state.name) showMap(); else showIntro();
+
+// прямая ссылка на станцию: index.html#s3
+const deep = (location.hash || '').match(/^#s([1-9])$/);
+if (deep) {
+  if (!state.name) state.name = 'друг';
+  state.started = true;
+  renderHUD();
+  openStation(+deep[1] - 1, true);
+}
+window.addEventListener('hashchange', () => {
+  const m2 = (location.hash || '').match(/^#s([1-9])$/);
+  if (m2) openStation(+m2[1] - 1, true);
+});
+
+</script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a5227bf52a8d65c8',t:'MTc5MzI4MDA5NQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
